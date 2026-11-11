@@ -1,0 +1,7 @@
+venv/
+.env
+__pycache__/
+final_ready_video.mp4
+automation.db
+temp_audio.mp3
+temp_video.mp4
