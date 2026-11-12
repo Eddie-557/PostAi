@@ -1,12 +1,26 @@
 name: Video Publisher
 
 on:
+  # Triggered by the approval button (via the GitHub API) with {"category": "..."}
   repository_dispatch:
     types: [publish_video]
+  # Lets you test publishing by hand from the Actions tab
+  workflow_dispatch:
+    inputs:
+      category:
+        description: 'Category (News, Movies, Entertainment, Christianity, Trends)'
+        required: false
+        default: 'News'
+
+# Never publish two videos at the same time
+concurrency:
+  group: postai-publisher
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
 
@@ -15,29 +29,65 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
+      # Only the libraries publisher.py needs (no MoviePy/numpy/Pillow here)
       - name: Install Python Libraries
         run: |
-          pip install -r requirements.txt
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv google-api-python-client google-auth-httplib2
+
+      # Remember exactly which video we are about to publish
+      - name: Fingerprint Video
+        run: |
+          if [ -f final_ready_video.mp4 ]; then
+            echo "VIDEO_SHA=$(sha256sum final_ready_video.mp4 | cut -d' ' -f1)" >> "$GITHUB_ENV"
+          fi
 
       - name: Run Publisher Script
         env:
-          CATEGORY: ${{ github.event.client_payload.category }}
+          PYTHONUNBUFFERED: '1'
+          CATEGORY: ${{ github.event.client_payload.category || inputs.category }}
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
           YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
         run: |
-          python publisher.py 
+          python publisher.py
 
+      # Only runs if publishing succeeded. Deletes the video from the repo, but
+      # ONLY if it is still the same video we published (a newer one is left alone).
       - name: Cleanup Repository Storage
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git rm final_ready_video.mp4 || true
-          git commit -m "Published video and cleared storage" || true
-          git push
+
+          for attempt in 1 2 3; do
+            git fetch origin "${GITHUB_REF_NAME}"
+            git reset --hard "origin/${GITHUB_REF_NAME}"
+
+            if [ ! -f final_ready_video.mp4 ]; then
+              echo "Video already removed. Nothing to clean up."
+              exit 0
+            fi
+
+            current_sha="$(sha256sum final_ready_video.mp4 | cut -d' ' -f1)"
+            if [ "$current_sha" != "$VIDEO_SHA" ]; then
+              echo "A newer video is waiting in the repo. Leaving it in place."
+              exit 0
+            fi
+
+            git rm -q final_ready_video.mp4
+            git commit -m "Published video and cleared storage"
+            if git push origin "HEAD:${GITHUB_REF_NAME}"; then
+              exit 0
+            fi
+            echo "Push rejected, retrying (attempt $attempt of 3)..."
+            sleep 5
+          done
+
+          echo "Could not push after 3 attempts."
+          exit 1
