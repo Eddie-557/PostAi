@@ -44,7 +44,7 @@ jobs:
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git add automation.db
-          git add final_ready_video.mp4 || true
+          git add -f automation.db
+          git add -f final_ready_video.mp4 || true
           git commit -m "Auto-generated new video and updated category rotation" || true
           git push
