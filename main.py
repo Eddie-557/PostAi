@@ -189,8 +189,9 @@ async def main():
         if os.path.exists(TEMP_VIDEO): os.remove(TEMP_VIDEO)
 
 if __name__ == "__main__":
-    asyncio.run(main())
-
-
-if __name__ == "__main__":
-    asyncio.run(main())
+    print("[*] Waking up PostAI...")
+    import asyncio
+    try:
+        asyncio.run(main())
+    except Exception as e:
+        print(f"[!] Pipeline crashed: {e}")
