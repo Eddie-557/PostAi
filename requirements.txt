@@ -1,15 +1,20 @@
-# Video Generation (Locked to prevent ANTIALIAS crash)
+# --- Video generation (pinned) ---
 moviepy==1.0.3
 Pillow==9.5.0
+# moviepy 1.0.3 is an old release; numpy 2.x is a precaution-pin away
+numpy>=1.23,<2
 
-# Core APIs (Locked to known stable async versions)
+# --- AI voice, script, and Telegram ---
 python-telegram-bot>=20.0
+# Keep edge-tts unpinned: Microsoft changes its service and old versions stop working
 edge-tts
 google-generativeai
 
-# Publishing APIs & Environment
+# --- Helpers ---
 requests
 python-dotenv
+
+# --- Publishing (used by publisher.py) ---
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
