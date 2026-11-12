@@ -1,8 +1,15 @@
+# Video Generation (Locked to prevent ANTIALIAS crash)
 moviepy==1.0.3
+Pillow==9.5.0
+
+# Core APIs (Locked to known stable async versions)
+python-telegram-bot>=20.0
 edge-tts
 google-generativeai
-python-telegram-bot
+
+# Publishing APIs & Environment
 requests
+python-dotenv
 google-api-python-client
 google-auth-oauthlib
 google-auth-httplib2
