@@ -403,4 +403,4 @@ if __name__ == "__main__":
     except Exception:
         traceback.print_exc()
         log("[!] Pipeline FAILED. See the error above.")
-        sys.exit(1)  # makes the GitHub Action turn red instead of green
+        sys.exit(1)  # makes the GitHub Action turn red instead of green.
