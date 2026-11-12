@@ -66,7 +66,7 @@ def get_next_category():
 
 def generate_script(category):
     print(f"[*] Generating script for category: {category}...")
-    model = genai.GenerativeModel('gemini-1.5-flash-latest')
+    model = genai.GenerativeModel('gemini-pro')
     prompt = f"""
     Write a highly engaging, 45-second video script for this category: {category}.
     Provide ONLY the spoken text. Do not include visual directions, stage directions, or timestamps.
