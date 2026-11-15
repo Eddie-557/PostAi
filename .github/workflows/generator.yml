@@ -26,13 +26,22 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Setup FFmpeg
-        uses: FedericoCarboni/setup-ffmpeg@v3
-
       - name: Install Python Libraries
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      # MoviePy uses the FFmpeg that comes bundled with the imageio-ffmpeg pip package,
+      # so no separate download is needed. This step proves it can encode our video.
+      - name: Check FFmpeg
+        run: |
+          FFMPEG_EXE="$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
+          echo "Using FFmpeg at: $FFMPEG_EXE"
+          "$FFMPEG_EXE" -version | head -1
+          "$FFMPEG_EXE" -hide_banner -encoders > ffmpeg_encoders.txt
+          grep " libx264 " ffmpeg_encoders.txt
+          grep " aac " ffmpeg_encoders.txt
+          rm -f ffmpeg_encoders.txt
 
       - name: Run Main Video Pipeline
         env:
