@@ -31,17 +31,34 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # MoviePy uses the FFmpeg that comes bundled with the imageio-ffmpeg pip package,
-      # so no separate download is needed. This step proves it can encode our video.
+      # FFmpeg comes bundled with the imageio-ffmpeg pip package. This step proves it
+      # can really encode video and audio the way the pipeline needs.
       - name: Check FFmpeg
         run: |
           FFMPEG_EXE="$(python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')"
           echo "Using FFmpeg at: $FFMPEG_EXE"
           "$FFMPEG_EXE" -version | head -1
-          "$FFMPEG_EXE" -hide_banner -encoders > ffmpeg_encoders.txt
-          grep " libx264 " ffmpeg_encoders.txt
-          grep " aac " ffmpeg_encoders.txt
-          rm -f ffmpeg_encoders.txt
+          "$FFMPEG_EXE" -hide_banner -loglevel error -y \
+            -f lavfi -i "testsrc=duration=1:size=320x240:rate=30" \
+            -f lavfi -i "anullsrc=r=44100:cl=stereo" \
+            -t 1 -c:v libx264 -pix_fmt yuv420p -c:a aac "$RUNNER_TEMP/smoke.mp4"
+          test -s "$RUNNER_TEMP/smoke.mp4"
+          echo "FFmpeg can encode H.264 video and AAC audio."
+
+      # The captions need a bold TrueType font
+      - name: Check caption font
+        run: |
+          found=""
+          for f in /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf \
+                   /usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf \
+                   fonts/*.ttf fonts/*.otf; do
+            if [ -f "$f" ]; then found="$f"; break; fi
+          done
+          if [ -z "$found" ]; then
+            echo "No bold font found. Add a .ttf file to a 'fonts' folder in the repo."
+            exit 1
+          fi
+          echo "Caption font: $found"
 
       - name: Run Main Video Pipeline
         env:
@@ -50,6 +67,12 @@ jobs:
           PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          # Optional: set these under Settings > Secrets and variables > Actions > Variables
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          TTS_VOICE: ${{ vars.TTS_VOICE }}
+          VOICEOVER: ${{ vars.VOICEOVER }}
+          MUSIC_VOLUME: ${{ vars.MUSIC_VOLUME }}
+          CHANNEL_HANDLE: ${{ vars.CHANNEL_HANDLE }}
         run: |
           python main.py
 

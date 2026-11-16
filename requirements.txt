@@ -1,8 +1,7 @@
-# --- Video generation (pinned) ---
-moviepy==1.0.3
-Pillow==9.5.0
-# moviepy 1.0.3 is an old release; numpy 2.x is a precaution-pin away
-numpy>=1.23,<2
+# --- Video: FFmpeg comes bundled with this package (no separate install needed) ---
+imageio-ffmpeg
+# Draws the on-screen text and graphics
+Pillow>=9.5
 
 # --- AI voice, script, and Telegram ---
 python-telegram-bot>=20.0
